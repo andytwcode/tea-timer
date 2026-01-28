@@ -91,13 +91,13 @@ function resetCountdown() {
 
 <template>
   <!-- 整體佈局 - 漸層背景 -->
-  <div class="flex items-center justify-center min-h-screen bg-gradient-to-br from-green-50 via-teal-50 to-blue-50">
+  <div class="flex items-center justify-center min-h-screen bg-linear-to-br from-green-50 via-teal-50 to-blue-50">
     <div class="bg-white/80 backdrop-blur-sm p-10 rounded-3xl shadow-2xl max-w-md w-full space-y-8 border border-white/20">
       
       <!-- 標題區 -->
       <div class="text-center space-y-2">
         <div class="text-5xl mb-2">🍵</div>
-        <h1 class="text-3xl font-bold bg-gradient-to-r from-green-600 to-teal-600 bg-clip-text text-transparent">
+        <h1 class="text-3xl font-bold bg-linear-to-r from-green-600 to-teal-600 bg-clip-text text-transparent">
           Tea Timer
         </h1>
         <p class="text-sm text-gray-500">專注品茶的美好時光</p>
@@ -151,8 +151,8 @@ function resetCountdown() {
       
       <!-- 倒數顯示區 -->
       <div class="relative">
-        <div class="absolute inset-0 bg-gradient-to-r from-green-400/20 to-teal-400/20 rounded-3xl blur-xl"></div>
-        <div class="relative bg-gradient-to-br from-gray-50 to-gray-100 p-8 rounded-3xl border-2 border-gray-200">
+        <div class="absolute inset-0 bg-linear-to-r from-green-400/20 to-teal-400/20 rounded-3xl blur-xl"></div>
+        <div class="relative bg-linear-to-br from-gray-50 to-gray-100 p-8 rounded-3xl border-2 border-gray-200">
           <div class="text-center">
             <div 
               :class="{ 'animate-blink text-red-500': isTimeUp, 'text-gray-800': !isTimeUp }"
@@ -179,7 +179,7 @@ function resetCountdown() {
           @click="startCountdown"
           :disabled="!isValid || isRunning"
           class="flex-1 px-6 py-4 text-lg font-bold rounded-2xl transition-all duration-200
-                 bg-gradient-to-r from-green-500 to-teal-500 text-white shadow-lg
+                 bg-linear-to-r from-green-500 to-teal-500 text-white shadow-lg
                  hover:from-green-600 hover:to-teal-600 hover:shadow-xl hover:scale-105
                  active:scale-95
                  disabled:from-gray-300 disabled:to-gray-400 disabled:cursor-not-allowed 
@@ -191,7 +191,7 @@ function resetCountdown() {
         <button
           @click="resetCountdown"
           class="flex-1 px-6 py-4 text-lg font-bold rounded-2xl transition-all duration-200
-                 bg-gradient-to-r from-gray-500 to-gray-600 text-white shadow-lg
+                 bg-linear-to-r from-gray-500 to-gray-600 text-white shadow-lg
                  hover:from-gray-600 hover:to-gray-700 hover:shadow-xl hover:scale-105
                  active:scale-95"
         >
@@ -207,6 +207,3 @@ function resetCountdown() {
     </div>
   </div>
 </template>
-
-<style scoped>
-</style>
