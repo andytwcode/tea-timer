@@ -1,10 +1,6 @@
-# tab-title-sync
+# tab-title-sync (Delta Spec)
 
-## Purpose
-
-定義瀏覽器分頁標題與倒數時間同步更新的規格。
-
-## Requirements
+## MODIFIED Requirements
 
 ### Requirement: 倒數進行時更新分頁標題
 系統 SHALL 在倒數進行期間，每秒更新瀏覽器分頁標題以顯示當前泡的剩餘時間。在連續沖泡模式下，標題同時顯示泡數。
@@ -68,6 +64,8 @@
 #### Scenario: 連續模式標題長度適中
 - **WHEN** 連續沖泡模式下系統設定分頁標題
 - **THEN** 標題文字保持簡潔（例如「第5泡 3:00 - 茶計時器」），不使用過長的描述
+
+## ADDED Requirements
 
 ### Requirement: 連續模式下標題顯示泡數
 系統 SHALL 在連續沖泡模式啟用時，於分頁標題中顯示當前泡數。

@@ -9,6 +9,13 @@ const isRunning = ref(false)
 const initialSeconds = ref(0)
 const isTimeUp = ref(false)
 
+// 連續沖泡模式狀態 (Task 1.1-1.5)
+const incrementMinutes = ref(0)
+const incrementSeconds = ref(10)
+const enableMultiSteep = ref(false)
+const currentSteep = ref(1)
+const isCompleted = ref(false)
+
 let intervalId = null
 
 // 計算屬性 (Task 3.7-3.9)
@@ -20,17 +27,69 @@ const displayTime = computed(() => {
   return `${mins}:${secs.toString().padStart(2, '0')}`
 })
 
+// 連續沖泡計算屬性 (Task 1.6-1.8)
+const incrementTotalSeconds = computed(() => 
+  incrementMinutes.value * 60 + incrementSeconds.value
+)
+const currentSteepSeconds = computed(() => {
+  const baseTime = totalSeconds.value
+  if (!enableMultiSteep.value || incrementTotalSeconds.value === 0) {
+    return baseTime
+  }
+  return baseTime + (currentSteep.value - 1) * incrementTotalSeconds.value
+})
+const nextSteepSeconds = computed(() => {
+  const baseTime = totalSeconds.value
+  return baseTime + currentSteep.value * incrementTotalSeconds.value
+})
+
+// 按鈕文字邏輯 (Task 4.1-4.5)
+const mainButtonText = computed(() => {
+  if (isRunning.value) {
+    if (enableMultiSteep.value) {
+      return `⏸ 第 ${currentSteep.value} 泡計時中`
+    }
+    return `⏸ 計時中`
+  }
+  
+  if (isCompleted.value) {
+    if (enableMultiSteep.value && incrementTotalSeconds.value > 0) {
+      return `▶ 開始第 ${currentSteep.value} 泡 (${currentSteepSeconds.value}秒)`
+    }
+    return `▶ 重新開始`
+  }
+  
+  if (enableMultiSteep.value) {
+    return `▶ 開始第 ${currentSteep.value} 泡`
+  }
+  
+  return `▶ 開始`
+})
+
+// 結束沖泡按鈕顯示邏輯 (Task 4.2)
+const showEndButton = computed(() => 
+  isCompleted.value && 
+  enableMultiSteep.value && 
+  incrementTotalSeconds.value > 0
+)
+
 // 初始化 (Task 10.5)
 onMounted(() => {
-  document.title = 'Tea Timer'
+  document.title = '茶計時器'
   
-  // 讀取 localStorage (Task 9.3-9.6)
+  // 讀取 localStorage (Task 8.4-8.6, 9.3-9.6)
   try {
     const savedMinutes = localStorage.getItem('teaTimerMinutes')
     const savedSeconds = localStorage.getItem('teaTimerSeconds')
+    const savedIncrementMinutes = localStorage.getItem('teaTimerIncrementMinutes')  // Task 8.4
+    const savedIncrementSeconds = localStorage.getItem('teaTimerIncrementSeconds')  // Task 8.5
+    const savedMultiSteepEnabled = localStorage.getItem('teaTimerMultiSteepEnabled')  // Task 8.6
     
     if (savedMinutes !== null) minutes.value = parseInt(savedMinutes)
     if (savedSeconds !== null) seconds.value = parseInt(savedSeconds)
+    if (savedIncrementMinutes !== null) incrementMinutes.value = parseInt(savedIncrementMinutes)
+    if (savedIncrementSeconds !== null) incrementSeconds.value = parseInt(savedIncrementSeconds)
+    if (savedMultiSteepEnabled !== null) enableMultiSteep.value = savedMultiSteepEnabled === 'true'
   } catch (error) {
     console.error('localStorage error:', error)
     // 使用預設值 (已在 ref 初始化時設定)
@@ -41,40 +100,65 @@ onMounted(() => {
 function startCountdown() {
   if (!isValid.value || isRunning.value) return
   
-  // 儲存到 localStorage (Task 9.1-9.2)
+  // 儲存到 localStorage (Task 8.7-8.9, 9.1-9.2)
   try {
     localStorage.setItem('teaTimerMinutes', minutes.value.toString())
     localStorage.setItem('teaTimerSeconds', seconds.value.toString())
+    localStorage.setItem('teaTimerIncrementMinutes', incrementMinutes.value.toString())  // Task 8.7
+    localStorage.setItem('teaTimerIncrementSeconds', incrementSeconds.value.toString())  // Task 8.8
+    localStorage.setItem('teaTimerMultiSteepEnabled', enableMultiSteep.value.toString())  // Task 8.9
   } catch (error) {
     console.error('localStorage save error:', error)
   }
   
-  initialSeconds.value = totalSeconds.value
-  remainingSeconds.value = totalSeconds.value
+  // 使用當前泡的時間 (Task 5.1)
+  initialSeconds.value = currentSteepSeconds.value
+  remainingSeconds.value = currentSteepSeconds.value
   isRunning.value = true
   isTimeUp.value = false
+  isCompleted.value = false
   
   intervalId = setInterval(() => {
     remainingSeconds.value--
     
-    // 更新分頁標題 (Task 10.1-10.2, 10.4)
+    // 更新分頁標題 (Task 9.1-9.4)
     if (remainingSeconds.value > 0) {
       const mins = Math.floor(remainingSeconds.value / 60)
       const secs = remainingSeconds.value % 60
-      document.title = `[${mins}:${secs.toString().padStart(2, '0')}] Tea Timer`
+      const timeStr = `${mins}:${secs.toString().padStart(2, '0')}`
+      
+      // Task 9.3: 連續模式顯示泡數
+      if (enableMultiSteep.value) {
+        document.title = `第${currentSteep.value}泡 ${timeStr} - 茶計時器`
+      } else {
+        // Task 9.2: 單次模式不顯示泡數
+        document.title = `${timeStr} - 茶計時器`
+      }
     } else {
-      document.title = '[0:00] Tea Timer'
+      // 完成時也根據模式顯示
+      if (enableMultiSteep.value) {
+        document.title = `第${currentSteep.value}泡 0:00 - 茶計時器`
+      } else {
+        document.title = `0:00 - 茶計時器`
+      }
     }
     
     if (remainingSeconds.value <= 0) {
       clearInterval(intervalId)
       isRunning.value = false
       isTimeUp.value = true
+      isCompleted.value = true  // Task 5.2
+      
+      // 連續模式下增加泡數 (Task 5.3-5.4)
+      if (enableMultiSteep.value && incrementTotalSeconds.value > 0) {
+        currentSteep.value++
+        // 不重置，等待使用者操作 (Task 5.4)
+      }
     }
   }, 1000)
 }
 
-// 重置功能 (Task 5.6-5.7)
+// 重置功能 (Task 7.1-7.3)
 function resetCountdown() {
   if (intervalId) {
     clearInterval(intervalId)
@@ -82,10 +166,26 @@ function resetCountdown() {
   }
   isRunning.value = false
   isTimeUp.value = false
-  remainingSeconds.value = initialSeconds.value || totalSeconds.value
+  isCompleted.value = false  // Task 7.2
+  currentSteep.value = 1  // Task 7.1
+  remainingSeconds.value = totalSeconds.value  // Task 7.3: 恢復為第一泡時間
   
   // 恢復標題 (Task 10.3)
-  document.title = 'Tea Timer'
+  document.title = '茶計時器'
+}
+
+// 結束沖泡功能 (Task 4.8)
+function endBrewing() {
+  if (intervalId) {
+    clearInterval(intervalId)
+    intervalId = null
+  }
+  isRunning.value = false
+  isTimeUp.value = false
+  isCompleted.value = false
+  currentSteep.value = 1
+  remainingSeconds.value = totalSeconds.value
+  document.title = '茶計時器'
 }
 </script>
 
@@ -113,7 +213,7 @@ function resetCountdown() {
       <div class="space-y-4">
         <div class="flex gap-4 justify-center">
           <div class="flex flex-col flex-1">
-            <label class="text-xs font-semibold text-gray-600 mb-2 uppercase tracking-wider">分鐘</label>
+            <label class="text-xs font-semibold text-gray-600 mb-2 uppercase tracking-wider">第一泡分鐘</label>
             <input 
               v-model.number="minutes"
               type="number" 
@@ -143,6 +243,59 @@ function resetCountdown() {
           </div>
         </div>
         
+        <!-- 連續沖泡控制 (Task 2.1-2.5) -->
+        <div class="bg-gradient-to-r from-green-50 to-teal-50 p-4 rounded-2xl border border-green-100">
+          <label class="flex items-center gap-3 cursor-pointer group">
+            <input 
+              v-model="enableMultiSteep" 
+              type="checkbox"
+              class="w-5 h-5 text-green-600 border-gray-300 rounded focus:ring-green-500 focus:ring-2 cursor-pointer"
+              :disabled="isRunning"
+            />
+            <span class="text-sm font-semibold text-gray-700 group-hover:text-green-600 transition-colors">
+              ☑️ 啟用連續沖泡
+            </span>
+          </label>
+          
+          <!-- 增量輸入欄位 (Task 2.2-2.5) -->
+          <div v-if="enableMultiSteep" class="mt-4 pt-4 border-t border-green-200">
+            <label class="block text-xs font-semibold text-gray-600 mb-3 uppercase tracking-wider">
+              每泡增加時間
+            </label>
+            <div class="flex gap-3 items-center">
+              <div class="flex flex-col flex-1">
+                <input 
+                  v-model.number="incrementMinutes"
+                  type="number" 
+                  min="0" 
+                  max="10"
+                  class="w-full px-4 py-3 text-xl text-center font-bold border-2 border-green-200 rounded-xl 
+                         focus:outline-none focus:ring-3 focus:ring-green-300 focus:border-green-400 
+                         transition-all duration-200 bg-white
+                         disabled:bg-gray-100 disabled:text-gray-400"
+                  :disabled="isRunning"
+                />
+                <span class="text-xs text-gray-500 text-center mt-1">分</span>
+              </div>
+              <div class="text-xl font-bold text-gray-400">:</div>
+              <div class="flex flex-col flex-1">
+                <input 
+                  v-model.number="incrementSeconds"
+                  type="number" 
+                  min="0" 
+                  max="59"
+                  class="w-full px-4 py-3 text-xl text-center font-bold border-2 border-green-200 rounded-xl 
+                         focus:outline-none focus:ring-3 focus:ring-green-300 focus:border-green-400 
+                         transition-all duration-200 bg-white
+                         disabled:bg-gray-100 disabled:text-gray-400"
+                  :disabled="isRunning"
+                />
+                <span class="text-xs text-gray-500 text-center mt-1">秒</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        
         <!-- 上次使用提示 -->
         <div v-if="!isRunning && !isTimeUp" class="text-xs text-center text-gray-400">
           💾 上次使用：{{ minutes }} 分 {{ seconds }} 秒
@@ -153,6 +306,14 @@ function resetCountdown() {
       <div class="relative">
         <div class="absolute inset-0 bg-linear-to-r from-green-400/20 to-teal-400/20 rounded-3xl blur-xl"></div>
         <div class="relative bg-linear-to-br from-gray-50 to-gray-100 p-8 rounded-3xl border-2 border-gray-200">
+          
+          <!-- 泡數計數器 (Task 3.1-3.3) -->
+          <div v-if="enableMultiSteep" class="text-center mb-4">
+            <div class="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-green-500 to-teal-500 text-white rounded-full shadow-lg">
+              <span class="text-sm font-bold">🍃 當前：第 {{ currentSteep }} 泡</span>
+            </div>
+          </div>
+          
           <div class="text-center">
             <div 
               :class="{ 'animate-blink text-red-500': isTimeUp, 'text-gray-800': !isTimeUp }"
@@ -163,8 +324,10 @@ function resetCountdown() {
             <div v-if="isRunning" class="mt-3 text-sm text-gray-500 animate-pulse">
               ⏳ 計時中...
             </div>
+            <!-- 完成狀態文字 (Task 6.1-6.3) -->
             <div v-else-if="isTimeUp" class="mt-3 text-sm text-red-500 font-semibold">
-              ✨ 時間到！
+              <span v-if="enableMultiSteep">✨ 第 {{ currentSteep - 1 }} 泡完成！</span>
+              <span v-else>✨ 時間到！</span>
             </div>
             <div v-else class="mt-3 text-sm text-gray-400">
               等待開始
@@ -181,19 +344,32 @@ function resetCountdown() {
           class="flex-1 px-6 py-4 text-lg font-bold rounded-2xl transition-all duration-200
                  bg-linear-to-r from-green-500 to-teal-500 text-white shadow-lg
                  hover:from-green-600 hover:to-teal-600 hover:shadow-xl hover:scale-105
-                 active:scale-95
+                 active:scale-95 cursor-pointer
                  disabled:from-gray-300 disabled:to-gray-400 disabled:cursor-not-allowed 
                  disabled:hover:scale-100 disabled:shadow-none"
         >
-          <span v-if="!isRunning">▶ 開始</span>
-          <span v-else class="opacity-50">⏸ 計時中</span>
+          {{ mainButtonText }}
         </button>
+        
+        <!-- 結束沖泡按鈕 (Task 4.6-4.7) -->
         <button
+          v-if="showEndButton"
+          @click="endBrewing"
+          class="flex-1 px-6 py-4 text-lg font-bold rounded-2xl transition-all duration-200
+                 bg-linear-to-r from-orange-500 to-red-500 text-white shadow-lg
+                 hover:from-orange-600 hover:to-red-600 hover:shadow-xl hover:scale-105
+                 active:scale-95 cursor-pointer"
+        >
+          🛑 結束沖泡
+        </button>
+        
+        <button
+          v-if="!showEndButton"
           @click="resetCountdown"
           class="flex-1 px-6 py-4 text-lg font-bold rounded-2xl transition-all duration-200
                  bg-linear-to-r from-gray-500 to-gray-600 text-white shadow-lg
                  hover:from-gray-600 hover:to-gray-700 hover:shadow-xl hover:scale-105
-                 active:scale-95"
+                 active:scale-95 cursor-pointer"
         >
           🔄 重置
         </button>

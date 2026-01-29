@@ -1,10 +1,6 @@
-# storage-persistence
+# storage-persistence (Delta Spec)
 
-## Purpose
-
-定義使用 localStorage 儲存和讀取使用者偏好設定的規格。
-
-## Requirements
+## MODIFIED Requirements
 
 ### Requirement: 儲存上次輸入的分鐘數
 系統 SHALL 在使用者啟動倒數時，將第一泡的分鐘數儲存到 localStorage。
@@ -67,6 +63,8 @@
 #### Scenario: 儲存模式設定
 - **WHEN** 系統儲存連續沖泡模式的開關狀態
 - **THEN** 使用鍵名 `teaTimerMultiSteepEnabled`
+
+## ADDED Requirements
 
 ### Requirement: 儲存增量分鐘數
 系統 SHALL 在使用者啟動倒數時，將增量分鐘數儲存到 localStorage。

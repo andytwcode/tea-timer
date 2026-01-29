@@ -1,10 +1,6 @@
-# timer-control
+# timer-control (Delta Spec)
 
-## Purpose
-
-定義計時器控制功能的規格，包含開始、重置按鈕和狀態管理。
-
-## Requirements
+## MODIFIED Requirements
 
 ### Requirement: 提供開始按鈕
 系統 SHALL 提供開始按鈕，並根據當前模式、狀態和泡數動態調整按鈕文字。
@@ -75,6 +71,8 @@
 #### Scenario: 無效輸入不啟動倒數
 - **WHEN** 使用者輸入第一泡時間為 0 分鐘 2 秒（總計 2 秒，少於 5 秒）並點擊「開始」
 - **THEN** 系統驗證失敗，不啟動倒數，顯示錯誤訊息
+
+## ADDED Requirements
 
 ### Requirement: 提供結束沖泡按鈕
 系統 SHALL 在連續沖泡模式下，當倒數完成且增量大於 0 時，提供「結束沖泡」次按鈕。

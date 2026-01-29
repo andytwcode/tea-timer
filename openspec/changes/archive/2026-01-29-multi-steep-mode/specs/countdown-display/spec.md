@@ -1,10 +1,6 @@
-# countdown-display
+# countdown-display (Delta Spec)
 
-## Purpose
-
-定義倒數計時顯示的規格，包含時間格式、更新頻率和顯示樣式。
-
-## Requirements
+## MODIFIED Requirements
 
 ### Requirement: 顯示格式為 M:SS
 系統 SHALL 以「M:SS」格式顯示當前泡的剩餘時間，其中 M 為分鐘數，SS 為兩位數的秒數。在連續沖泡模式下，每泡的總時間會根據增量自動計算。
@@ -57,6 +53,8 @@
 #### Scenario: 顯示倒數時間
 - **WHEN** 系統顯示倒數時間
 - **THEN** 字體大小應顯著大於輸入欄位和按鈕文字
+
+## ADDED Requirements
 
 ### Requirement: 時間到達時觸發閃爍動畫
 系統 SHALL 在每一泡倒數完成時觸發文字閃爍動畫，提醒使用者時間到了。
