@@ -75,7 +75,7 @@ const showEndButton = computed(() =>
 
 // 初始化 (Task 10.5)
 onMounted(() => {
-  document.title = '茶計時器'
+  document.title = '泡茶計時器'
   
   // 讀取 localStorage (Task 8.4-8.6, 9.3-9.6)
   try {
@@ -129,17 +129,17 @@ function startCountdown() {
       
       // Task 9.3: 連續模式顯示泡數
       if (enableMultiSteep.value) {
-        document.title = `第${currentSteep.value}泡 ${timeStr} - 茶計時器`
+        document.title = `第${currentSteep.value}泡 ${timeStr} - 泡茶計時器`
       } else {
         // Task 9.2: 單次模式不顯示泡數
-        document.title = `${timeStr} - 茶計時器`
+        document.title = `${timeStr} - 泡茶計時器`
       }
     } else {
       // 完成時也根據模式顯示
       if (enableMultiSteep.value) {
-        document.title = `第${currentSteep.value}泡 0:00 - 茶計時器`
+        document.title = `第${currentSteep.value}泡 0:00 - 泡茶計時器`
       } else {
-        document.title = `0:00 - 茶計時器`
+        document.title = `0:00 - 泡茶計時器`
       }
     }
     
@@ -171,7 +171,7 @@ function resetCountdown() {
   remainingSeconds.value = totalSeconds.value  // Task 7.3: 恢復為第一泡時間
   
   // 恢復標題 (Task 10.3)
-  document.title = '茶計時器'
+  document.title = '泡茶計時器'
 }
 
 // 結束沖泡功能 (Task 4.8)
@@ -185,7 +185,7 @@ function endBrewing() {
   isCompleted.value = false
   currentSteep.value = 1
   remainingSeconds.value = totalSeconds.value
-  document.title = '茶計時器'
+  document.title = '泡茶計時器'
 }
 </script>
 
