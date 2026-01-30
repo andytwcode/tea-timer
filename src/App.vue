@@ -87,6 +87,11 @@ const incrementLabel = computed(() => {
 onMounted(() => {
   document.title = '泡茶計時器'
   
+  // 請求通知權限 (Task 4.1-4.5)
+  if ('Notification' in window && Notification.permission === 'default') {
+    Notification.requestPermission()
+  }
+  
   // 讀取 localStorage (Task 8.4-8.6, 9.3-9.6, 2.1-2.2, 9.1-9.4)
   try {
     const savedMinutes = localStorage.getItem('teaTimerMinutes')
@@ -186,6 +191,27 @@ function startCountdown() {
       isTimeUp.value = true
       isCompleted.value = true  // Task 5.2
       
+      // 發送通知 (Task 5.1-6.3)
+      if ('Notification' in window && Notification.permission === 'granted') {
+        const notificationTitle = '泡茶時間到！'
+        const notificationBody = enableMultiSteep.value 
+          ? `第 ${currentSteep.value} 泡已完成`
+          : '時間到了！'
+        
+        const notification = new Notification(notificationTitle, {
+          body: notificationBody,
+          icon: '/icons/icon-192.png',
+          vibrate: [200, 100, 200],
+          tag: 'tea-timer',
+          requireInteraction: true
+        })
+        
+        notification.onclick = () => {
+          window.focus()
+          notification.close()
+        }
+      }
+      
       // 連續模式下增加泡數 (Task 5.3-5.4)
       if (enableMultiSteep.value && incrementTotalSeconds.value > 0) {
         currentSteep.value++
@@ -247,7 +273,7 @@ function endBrewing() {
       <div class="text-center space-y-2">
         <div class="text-5xl mb-2">🍵</div>
         <h1 class="text-3xl font-bold bg-linear-to-r from-green-600 to-teal-600 bg-clip-text text-transparent">
-          Tea Timer
+          泡茶計時器
         </h1>
         <p class="text-sm text-gray-500">專注品茶的美好時光</p>
       </div>
@@ -293,7 +319,7 @@ function endBrewing() {
         </div>
         
         <!-- 連續沖泡控制 (Task 2.1-2.5, 4.1-4.5) -->
-        <div class="bg-gradient-to-r from-green-50 to-teal-50 p-4 rounded-2xl border border-green-100">
+        <div class="bg-linear-to-r from-green-50 to-teal-50 p-4 rounded-2xl border border-green-100">
           <!-- 頂部按鈕容器 (Task 4.1-4.5) -->
           <div class="flex justify-between items-center">
             <label class="flex items-center gap-3 cursor-pointer group">
@@ -370,7 +396,7 @@ function endBrewing() {
           
           <!-- 泡數計數器 (Task 3.1-3.3) -->
           <div v-if="enableMultiSteep" class="text-center mb-4">
-            <div class="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-green-500 to-teal-500 text-white rounded-full shadow-lg">
+            <div class="inline-flex items-center gap-2 px-4 py-2 bg-linear-to-r from-green-500 to-teal-500 text-white rounded-full shadow-lg">
               <span class="text-sm font-bold">🍃 當前：第 {{ currentSteep }} 泡</span>
             </div>
           </div>

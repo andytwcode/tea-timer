@@ -1,0 +1,23 @@
+{
+  "name": "泡茶計時器",
+  "short_name": "泡茶",
+  "description": "優雅的連續沖泡計時工具",
+  "start_url": "/tea-timer/",
+  "display": "standalone",
+  "theme_color": "#16a34a",
+  "background_color": "#f0fdf4",
+  "icons": [
+    {
+      "src": "/tea-timer/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/tea-timer/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}
