@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 
 // 狀態管理 (Task 3.1-3.6)
 const minutes = ref(3)
@@ -15,6 +15,9 @@ const incrementSeconds = ref(10)
 const enableMultiSteep = ref(false)
 const currentSteep = ref(1)
 const isCompleted = ref(false)
+
+// 可摺疊增量設定狀態 (Task 1.1)
+const showIncrementSettings = ref(false)
 
 let intervalId = null
 
@@ -73,26 +76,60 @@ const showEndButton = computed(() =>
   incrementTotalSeconds.value > 0
 )
 
+// 增量設定按鈕文字 (Task 1.2)
+const incrementLabel = computed(() => {
+  const mins = incrementMinutes.value
+  const secs = incrementSeconds.value
+  return `⚙️ 設定 (目前：${mins}分${secs}秒)`
+})
+
 // 初始化 (Task 10.5)
 onMounted(() => {
   document.title = '泡茶計時器'
   
-  // 讀取 localStorage (Task 8.4-8.6, 9.3-9.6)
+  // 讀取 localStorage (Task 8.4-8.6, 9.3-9.6, 2.1-2.2, 9.1-9.4)
   try {
     const savedMinutes = localStorage.getItem('teaTimerMinutes')
     const savedSeconds = localStorage.getItem('teaTimerSeconds')
     const savedIncrementMinutes = localStorage.getItem('teaTimerIncrementMinutes')  // Task 8.4
     const savedIncrementSeconds = localStorage.getItem('teaTimerIncrementSeconds')  // Task 8.5
     const savedMultiSteepEnabled = localStorage.getItem('teaTimerMultiSteepEnabled')  // Task 8.6
+    const savedShowIncrementSettings = localStorage.getItem('teaTimerShowIncrementSettings')  // Task 2.1, 9.1
     
     if (savedMinutes !== null) minutes.value = parseInt(savedMinutes)
     if (savedSeconds !== null) seconds.value = parseInt(savedSeconds)
     if (savedIncrementMinutes !== null) incrementMinutes.value = parseInt(savedIncrementMinutes)
     if (savedIncrementSeconds !== null) incrementSeconds.value = parseInt(savedIncrementSeconds)
     if (savedMultiSteepEnabled !== null) enableMultiSteep.value = savedMultiSteepEnabled === 'true'
+    if (savedShowIncrementSettings !== null) showIncrementSettings.value = savedShowIncrementSettings === 'true'  // Task 2.2, 9.2-9.3
+    // Task 9.4: 若為 null，使用預設值 false（已在 ref 初始化時設定）
   } catch (error) {
     console.error('localStorage error:', error)
     // 使用預設值 (已在 ref 初始化時設定)
+  }
+})
+
+// 自動收起增量設定 (Task 3.1-3.3, 10.1-10.4)
+watch(enableMultiSteep, (newValue) => {
+  // 只在取消勾選時自動收起，勾選時尊重用戶的展開/收起偏好
+  if (!newValue && showIncrementSettings.value) {
+    showIncrementSettings.value = false
+    try {
+      localStorage.setItem('teaTimerShowIncrementSettings', 'false')
+    } catch (error) {
+      console.error('localStorage save error:', error)
+    }
+  } else if (newValue) {
+    // 勾選時，如果 localStorage 沒有記錄（首次使用），則自動展開
+    const saved = localStorage.getItem('teaTimerShowIncrementSettings')
+    if (saved === null) {
+      showIncrementSettings.value = true
+      try {
+        localStorage.setItem('teaTimerShowIncrementSettings', 'true')
+      } catch (error) {
+        console.error('localStorage save error:', error)
+      }
+    }
   }
 })
 
@@ -174,6 +211,18 @@ function resetCountdown() {
   document.title = '泡茶計時器'
 }
 
+// 展開/收起增量設定 (Task 1.3, 8.1-8.4)
+function toggleIncrementSettings() {
+  showIncrementSettings.value = !showIncrementSettings.value
+  
+  try {
+    localStorage.setItem('teaTimerShowIncrementSettings', 
+                         showIncrementSettings.value.toString())
+  } catch (error) {
+    console.error('localStorage save error:', error)
+  }
+}
+
 // 結束沖泡功能 (Task 4.8)
 function endBrewing() {
   if (intervalId) {
@@ -243,22 +292,34 @@ function endBrewing() {
           </div>
         </div>
         
-        <!-- 連續沖泡控制 (Task 2.1-2.5) -->
+        <!-- 連續沖泡控制 (Task 2.1-2.5, 4.1-4.5) -->
         <div class="bg-gradient-to-r from-green-50 to-teal-50 p-4 rounded-2xl border border-green-100">
-          <label class="flex items-center gap-3 cursor-pointer group">
-            <input 
-              v-model="enableMultiSteep" 
-              type="checkbox"
-              class="w-5 h-5 text-green-600 border-gray-300 rounded focus:ring-green-500 focus:ring-2 cursor-pointer"
-              :disabled="isRunning"
-            />
-            <span class="text-sm font-semibold text-gray-700 group-hover:text-green-600 transition-colors">
-              ☑️ 啟用連續沖泡
-            </span>
-          </label>
+          <!-- 頂部按鈕容器 (Task 4.1-4.5) -->
+          <div class="flex justify-between items-center">
+            <label class="flex items-center gap-3 cursor-pointer group">
+              <input 
+                v-model="enableMultiSteep" 
+                type="checkbox"
+                class="w-5 h-5 text-green-600 border-gray-300 rounded focus:ring-green-500 focus:ring-2 cursor-pointer"
+                :disabled="isRunning"
+              />
+              <span class="text-sm font-semibold text-gray-700 group-hover:text-green-600 transition-colors">
+                啟用連續沖泡
+              </span>
+            </label>
+            
+            <!-- 展開/收起按鈕 (Task 4.3-4.5, 6.1-6.4) -->
+            <button 
+              v-if="enableMultiSteep"
+              @click="toggleIncrementSettings"
+              class="text-sm text-gray-600 hover:text-green-600 transition-colors px-3 py-1 rounded-lg hover:bg-white/50 cursor-pointer"
+            >
+              {{ showIncrementSettings ? '▲ 收起' : incrementLabel }}
+            </button>
+          </div>
           
-          <!-- 增量輸入欄位 (Task 2.2-2.5) -->
-          <div v-if="enableMultiSteep" class="mt-4 pt-4 border-t border-green-200">
+          <!-- 增量輸入欄位 (Task 2.2-2.5, 5.1-5.3) -->
+          <div v-if="enableMultiSteep && showIncrementSettings" class="mt-4 pt-4 border-t border-green-200">
             <label class="block text-xs font-semibold text-gray-600 mb-3 uppercase tracking-wider">
               每泡增加時間
             </label>

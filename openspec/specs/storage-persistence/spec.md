@@ -132,3 +132,72 @@
 #### Scenario: 重新開啟頁面時重置進度
 - **WHEN** 使用者在第 5 泡進行中關閉頁面後重新開啟
 - **THEN** 系統從第 1 泡開始，不恢復第 5 泡的狀態
+
+### Requirement: 儲存增量設定區域的展開/收起狀態
+系統 SHALL 在使用者展開或收起增量設定區域時，將狀態儲存到 localStorage。
+
+#### Scenario: 展開時儲存狀態
+- **WHEN** 使用者點擊按鈕展開增量設定區域
+- **THEN** 系統將 `true` 儲存到 localStorage 鍵 `teaTimerShowIncrementSettings`
+
+#### Scenario: 收起時儲存狀態
+- **WHEN** 使用者點擊按鈕收起增量設定區域
+- **THEN** 系統將 `false` 儲存到 localStorage 鍵 `teaTimerShowIncrementSettings`
+
+#### Scenario: 自動收起時更新儲存狀態
+- **WHEN** 使用者取消勾選連續沖泡導致增量設定區域自動收起
+- **THEN** 系統將 `false` 儲存到 localStorage 鍵 `teaTimerShowIncrementSettings`
+
+### Requirement: 載入時讀取增量設定區域的展開/收起狀態
+系統 SHALL 在頁面載入時從 localStorage 讀取上次儲存的展開/收起狀態，並恢復顯示。
+
+#### Scenario: 載入頁面時恢復展開狀態
+- **WHEN** 使用者重新開啟頁面且 localStorage 中 `teaTimerShowIncrementSettings` 為 `true`
+- **THEN** 系統將增量設定區域設為展開狀態
+- **AND** 按鈕顯示「▲ 收起」
+
+#### Scenario: 載入頁面時恢復收起狀態
+- **WHEN** 使用者重新開啟頁面且 localStorage 中 `teaTimerShowIncrementSettings` 為 `false`
+- **THEN** 系統將增量設定區域設為收起狀態
+- **AND** 按鈕顯示「⚙️ 設定增量 (目前：X分Y秒)」
+
+#### Scenario: 首次載入無儲存資料
+- **WHEN** 使用者首次開啟頁面且 localStorage 中無 `teaTimerShowIncrementSettings` 資料
+- **THEN** 系統使用預設值 `false`（收起狀態）
+
+### Requirement: 容錯處理展開/收起狀態的 localStorage 錯誤
+系統 SHALL 處理 localStorage 無法存取的情況，不影響展開/收起功能運作。
+
+#### Scenario: localStorage 儲存失敗
+- **WHEN** 儲存展開/收起狀態到 localStorage 時發生錯誤
+- **THEN** 系統記錄錯誤到 console
+- **AND** 展開/收起功能仍可正常運作（僅不記住偏好）
+
+#### Scenario: localStorage 讀取失敗
+- **WHEN** 讀取展開/收起狀態時發生錯誤
+- **THEN** 系統使用預設值 `false`（收起狀態）
+- **AND** 展開/收起功能仍可正常運作
+
+### Requirement: 使用明確的鍵名儲存展開/收起狀態
+系統 SHALL 使用明確的鍵名 `teaTimerShowIncrementSettings` 儲存展開/收起狀態，避免與其他應用程式衝突。
+
+#### Scenario: 儲存展開/收起狀態
+- **WHEN** 系統儲存展開/收起狀態
+- **THEN** 使用鍵名 `teaTimerShowIncrementSettings`
+
+#### Scenario: 讀取展開/收起狀態
+- **WHEN** 系統讀取展開/收起狀態
+- **THEN** 從鍵名 `teaTimerShowIncrementSettings` 讀取
+
+### Requirement: 展開/收起狀態獨立於其他設定
+系統 SHALL 將展開/收起狀態與其他設定（如增量時間、連續沖泡開關）分開儲存，確保各設定互不影響。
+
+#### Scenario: 修改增量時間不影響展開/收起狀態
+- **WHEN** 使用者在展開狀態下修改增量分鐘或秒數
+- **THEN** 展開/收起狀態保持不變
+- **AND** localStorage 中的 `teaTimerShowIncrementSettings` 不被更新
+
+#### Scenario: 展開/收起不影響其他設定
+- **WHEN** 使用者展開或收起增量設定區域
+- **THEN** 增量分鐘、秒數、連續沖泡開關等設定值保持不變
+- **AND** 僅 `teaTimerShowIncrementSettings` 被更新
