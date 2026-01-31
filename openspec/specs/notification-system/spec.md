@@ -92,12 +92,16 @@
 - **WHEN** 使用者點擊通知但應用已在前景
 - **THEN** 保持在應用視窗，通知關閉
 
-### Requirement: 通知使用唯一 tag 避免堆積
-系統 SHALL 設定通知 tag 為 "tea-timer"，避免多次計時完成時通知堆積。
+### Requirement: 通知使用唯一 tag 避免堆積並重新提醒
+系統 SHALL 設定通知 tag 為 "tea-timer" 避免堆積，並設定 renotify: true 確保每次替換時都重新播放聲音和震動。
 
 #### Scenario: 相同 tag 的通知替換舊通知
 - **WHEN** 第 2 泡完成發送通知後，第 3 泡也完成
 - **THEN** 第 3 泡的通知替換第 2 泡的通知，通知列不堆積多個通知
+
+#### Scenario: 替換通知時重新提醒
+- **WHEN** 新通知替換舊通知（相同 tag）
+- **THEN** 播放通知聲音和震動，不會靜默替換
 
 #### Scenario: tag 統一為 tea-timer
 - **WHEN** 系統發送任何計時完成通知
@@ -144,16 +148,24 @@
 - **WHEN** 連續沖泡模式完成且使用者想開始下一泡
 - **THEN** 使用者需點擊通知回到應用，在應用內操作
 
-### Requirement: 使用瀏覽器原生 Notification API
-系統 SHALL 使用 Notification API（非 Service Worker 通知），實作前景通知。
+### Requirement: 使用 Service Worker 發送通知以支援跨平台
+系統 SHALL 使用 Service Worker 的 showNotification() 方法發送通知，確保 Android Chrome 等平台的相容性。桌面瀏覽器可使用 Notification API 作為 fallback。
 
-#### Scenario: 使用 new Notification() 建立通知
-- **WHEN** 系統需發送計時完成通知
-- **THEN** 使用 `new Notification(title, options)` 建立通知物件
+#### Scenario: Android Chrome 使用 Service Worker 通知
+- **WHEN** 系統在 Android Chrome 需發送計時完成通知
+- **THEN** 透過 Service Worker 的 registration.showNotification() 發送通知
 
-#### Scenario: 不依賴 Service Worker
-- **WHEN** 系統發送通知
-- **THEN** 不使用 `registration.showNotification()`，避免引入 Service Worker 複雜度
+#### Scenario: 桌面瀏覽器可使用直接通知
+- **WHEN** 系統在桌面瀏覽器（Chrome/Firefox/Edge）需發送通知
+- **THEN** 可使用 new Notification() 或 Service Worker 通知
+
+#### Scenario: Service Worker 未就緒時優雅降級
+- **WHEN** Service Worker 尚未啟動但需發送通知
+- **THEN** 使用 new Notification() fallback（若平台支援）
+
+#### Scenario: 註冊 Service Worker
+- **WHEN** 應用初始化時
+- **THEN** 註冊 Service Worker 以支援通知功能
 
 #### Scenario: 前景通知限制
 - **WHEN** 使用者關閉應用分頁

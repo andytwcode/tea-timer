@@ -108,3 +108,18 @@
 #### Scenario: theme-color 與 manifest 一致
 - **WHEN** 檢查 HTML meta tag 和 manifest
 - **THEN** theme-color 數值一致為 #16a34a
+
+### Requirement: 提供 Service Worker 以支援 PWA 安裝
+系統 SHALL 註冊 Service Worker，確保在所有平台（特別是 Android Chrome）都能觸發 PWA 安裝提示。
+
+#### Scenario: 註冊 Service Worker 啟用安裝提示
+- **WHEN** 應用載入時
+- **THEN** 註冊 Service Worker，使瀏覽器能顯示「安裝」選項
+
+#### Scenario: Service Worker 支援多平台
+- **WHEN** 使用者在 Android Chrome 或桌面 Chrome 訪問
+- **THEN** Service Worker 啟動，滿足 PWA 安裝條件
+
+#### Scenario: Service Worker 提供基本生命週期
+- **WHEN** Service Worker 安裝和啟動
+- **THEN** 實作 install、activate、fetch 事件處理器
