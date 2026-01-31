@@ -78,7 +78,7 @@ const incrementLabel = computed(() => {
 **決定**：按鈕放置在增量設定區域的右上角
 
 ```vue
-<div class="bg-gradient-to-r from-green-50 to-teal-50 p-4 rounded-2xl">
+<div class="bg-linear-to-r from-green-50 to-teal-50 p-4 rounded-2xl">
   <div class="flex items-center justify-between">
     <label>☑️ 啟用連續沖泡</label>
     <button v-if="enableMultiSteep" @click="toggleIncrementSettings">

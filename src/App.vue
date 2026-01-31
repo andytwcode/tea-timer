@@ -1,53 +1,48 @@
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue'
+import { computed, onMounted, watch, toRefs } from 'vue'
+import { usePWA } from './composables/usePWA'
+import { useLocalStorage } from './composables/useLocalStorage'
+import { useNotification } from './composables/useNotification'
+import { useTimer } from './composables/useTimer'
+import { useMultiSteep } from './composables/useMultiSteep'
 
-// 狀態管理 (Task 3.1-3.6)
-const minutes = ref(1)
-const seconds = ref(0)
-const remainingSeconds = ref(0)
-const isRunning = ref(false)
-const isPaused = ref(false)
-const initialSeconds = ref(0)
-const isTimeUp = ref(false)
+// Composables
+const pwa = usePWA()
+const storage = useLocalStorage()
+const notification = useNotification()
+const timer = useTimer()
+const multiSteep = useMultiSteep()
 
-// 連續沖泡模式狀態 (Task 1.1-1.5)
-const incrementMinutes = ref(0)
-const incrementSeconds = ref(30)
-const enableMultiSteep = ref(false)
-const currentSteep = ref(1)
-const isCompleted = ref(false)
+// 解構暴露給 template（Vue 會自動 unwrap top-level refs）
+const {
+  minutes,
+  seconds,
+  isRunning,
+  isPaused,
+  isTimeUp,
+  totalSeconds,
+  isValid,
+  displayTime
+} = timer
 
-// 可摺疊增量設定狀態 (Task 1.1)
-const showIncrementSettings = ref(false)
+const {
+  incrementMinutes,
+  incrementSeconds,
+  enableMultiSteep,
+  currentSteep,
+  isCompleted,
+  showIncrementSettings,
+  incrementTotalSeconds,
+  incrementLabel,
+  showEndButton
+} = multiSteep
 
-let intervalId = null
-
-// 計算屬性 (Task 3.7-3.9)
-const totalSeconds = computed(() => minutes.value * 60 + seconds.value)
-const isValid = computed(() => totalSeconds.value >= 5 && totalSeconds.value <= 600)
-const displayTime = computed(() => {
-  const mins = Math.floor(remainingSeconds.value / 60)
-  const secs = remainingSeconds.value % 60
-  return `${mins}:${secs.toString().padStart(2, '0')}`
-})
-
-// 連續沖泡計算屬性 (Task 1.6-1.8)
-const incrementTotalSeconds = computed(() => 
-  incrementMinutes.value * 60 + incrementSeconds.value
+// 計算屬性 - 當前泡的秒數
+const currentSteepSeconds = computed(() => 
+  multiSteep.getCurrentSteepSeconds(totalSeconds.value)
 )
-const currentSteepSeconds = computed(() => {
-  const baseTime = totalSeconds.value
-  if (!enableMultiSteep.value || incrementTotalSeconds.value === 0) {
-    return baseTime
-  }
-  return baseTime + (currentSteep.value - 1) * incrementTotalSeconds.value
-})
-const nextSteepSeconds = computed(() => {
-  const baseTime = totalSeconds.value
-  return baseTime + currentSteep.value * incrementTotalSeconds.value
-})
 
-// 按鈕文字邏輯 (Task 4.1-4.5)
+// 按鈕文字邏輯
 const mainButtonText = computed(() => {
   if (isRunning.value && !isPaused.value) {
     // 計時中
@@ -79,325 +74,104 @@ const mainButtonText = computed(() => {
   return `▶ 開始`
 })
 
-// 結束沖泡按鈕顯示邏輯 (Task 4.2)
-const showEndButton = computed(() => 
-  isCompleted.value && 
-  enableMultiSteep.value && 
-  incrementTotalSeconds.value > 0
-)
-
-// 增量設定按鈕文字 (Task 1.2)
-const incrementLabel = computed(() => {
-  const mins = incrementMinutes.value
-  const secs = incrementSeconds.value
-  return `⚙️ 設定 (目前：${mins}分${secs}秒)`
-})
-
-// 初始化 (Task 10.5)
+// 初始化
 onMounted(() => {
   document.title = '泡茶計時器'
   
-  // 註冊 Service Worker（Android Chrome 需要才能安裝 PWA）
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('/tea-timer/sw.js').catch(() => {
-      // 靜默失敗，不影響應用功能
-    })
-  }
+  // 註冊 PWA Service Worker
+  pwa.register()
   
-  // 請求通知權限 (Task 4.1-4.5)
-  if ('Notification' in window && Notification.permission === 'default') {
-    Notification.requestPermission()
-  }
+  // 請求通知權限
+  notification.requestPermission()
   
-  // 讀取 localStorage (Task 8.4-8.6, 9.3-9.6, 2.1-2.2, 9.1-9.4)
-  try {
-    const savedMinutes = localStorage.getItem('teaTimerMinutes')
-    const savedSeconds = localStorage.getItem('teaTimerSeconds')
-    const savedIncrementMinutes = localStorage.getItem('teaTimerIncrementMinutes')  // Task 8.4
-    const savedIncrementSeconds = localStorage.getItem('teaTimerIncrementSeconds')  // Task 8.5
-    const savedMultiSteepEnabled = localStorage.getItem('teaTimerMultiSteepEnabled')  // Task 8.6
-    const savedShowIncrementSettings = localStorage.getItem('teaTimerShowIncrementSettings')  // Task 2.1, 9.1
-    
-    if (savedMinutes !== null) minutes.value = parseInt(savedMinutes)
-    if (savedSeconds !== null) seconds.value = parseInt(savedSeconds)
-    if (savedIncrementMinutes !== null) incrementMinutes.value = parseInt(savedIncrementMinutes)
-    if (savedIncrementSeconds !== null) incrementSeconds.value = parseInt(savedIncrementSeconds)
-    if (savedMultiSteepEnabled !== null) enableMultiSteep.value = savedMultiSteepEnabled === 'true'
-    if (savedShowIncrementSettings !== null) showIncrementSettings.value = savedShowIncrementSettings === 'true'  // Task 2.2, 9.2-9.3
-    // Task 9.4: 若為 null，使用預設值 false（已在 ref 初始化時設定）
-  } catch (error) {
-    console.error('localStorage error:', error)
-    // 使用預設值 (已在 ref 初始化時設定)
-  }
+  // 讀取 localStorage 設定
+  const settings = storage.loadSettings()
+  timer.loadTimerSettings(settings)
+  multiSteep.loadMultiSteepSettings(settings)
 })
 
-// 自動收起增量設定 (Task 3.1-3.3, 10.1-10.4)
+// 自動收起增量設定
 watch(enableMultiSteep, (newValue) => {
-  // 只在取消勾選時自動收起，勾選時尊重用戶的展開/收起偏好
   if (!newValue && showIncrementSettings.value) {
+    // 取消勾選時自動收起
     showIncrementSettings.value = false
-    try {
-      localStorage.setItem('teaTimerShowIncrementSettings', 'false')
-    } catch (error) {
-      console.error('localStorage save error:', error)
-    }
-  } else if (newValue) {
-    // 勾選時，如果 localStorage 沒有記錄（首次使用），則自動展開
-    const saved = localStorage.getItem('teaTimerShowIncrementSettings')
-    if (saved === null) {
-      showIncrementSettings.value = true
-      try {
-        localStorage.setItem('teaTimerShowIncrementSettings', 'true')
-      } catch (error) {
-        console.error('localStorage save error:', error)
-      }
-    }
+    storage.saveIncrementSettingsVisibility(false)
+  } else if (newValue && !storage.hasIncrementSettingsHistory()) {
+    // 首次勾選時自動展開
+    showIncrementSettings.value = true
+    storage.saveIncrementSettingsVisibility(true)
   }
 })
 
-// 倒數功能 (Task 5.1-5.5)
+// 倒數功能
 function startCountdown() {
   if (!isValid.value || (isRunning.value && !isPaused.value)) return
   
   // 如果是從暫停恢復，直接繼續
   if (isPaused.value) {
-    togglePause()
+    handleTogglePause()
     return
   }
   
-  // 儲存到 localStorage (Task 8.7-8.9, 9.1-9.2)
-  try {
-    localStorage.setItem('teaTimerMinutes', minutes.value.toString())
-    localStorage.setItem('teaTimerSeconds', seconds.value.toString())
-    localStorage.setItem('teaTimerIncrementMinutes', incrementMinutes.value.toString())  // Task 8.7
-    localStorage.setItem('teaTimerIncrementSeconds', incrementSeconds.value.toString())  // Task 8.8
-    localStorage.setItem('teaTimerMultiSteepEnabled', enableMultiSteep.value.toString())  // Task 8.9
-  } catch (error) {
-    console.error('localStorage save error:', error)
-  }
+  // 儲存設定到 localStorage
+  storage.saveTimerSettings(
+    minutes.value,
+    seconds.value,
+    incrementMinutes.value,
+    incrementSeconds.value,
+    enableMultiSteep.value
+  )
   
-  // 使用當前泡的時間 (Task 5.1)
-  initialSeconds.value = currentSteepSeconds.value
-  remainingSeconds.value = currentSteepSeconds.value
-  isRunning.value = true
-  isTimeUp.value = false
-  isCompleted.value = false
+  // 開始新的倒數
+  multiSteep.startNewCountdown()
   
-  intervalId = setInterval(() => {
-    remainingSeconds.value--
-    
-    // 更新分頁標題 (Task 9.1-9.4)
-    if (remainingSeconds.value > 0) {
-      const mins = Math.floor(remainingSeconds.value / 60)
-      const secs = remainingSeconds.value % 60
-      const timeStr = `${mins}:${secs.toString().padStart(2, '0')}`
-      
-      // Task 9.3: 連續模式顯示泡數
-      if (enableMultiSteep.value) {
-        document.title = `第${currentSteep.value}泡 ${timeStr} - 泡茶計時器`
-      } else {
-        // Task 9.2: 單次模式不顯示泡數
-        document.title = `${timeStr} - 泡茶計時器`
-      }
-    } else {
-      // 完成時也根據模式顯示
-      if (enableMultiSteep.value) {
-        document.title = `第${currentSteep.value}泡 0:00 - 泡茶計時器`
-      } else {
-        document.title = `0:00 - 泡茶計時器`
-      }
-    }
-    
-    if (remainingSeconds.value <= 0) {
-      clearInterval(intervalId)
-      isRunning.value = false
-      isTimeUp.value = true
-      isCompleted.value = true  // Task 5.2
-      
-      // 發送通知 (Task 5.1-6.3)
-      if ('Notification' in window && Notification.permission === 'granted') {
-        const notificationTitle = '泡茶時間到！'
-        const notificationBody = enableMultiSteep.value 
-          ? `第 ${currentSteep.value} 泡已完成`
-          : '時間到了！'
-        
-        // 使用 Service Worker 發送通知（支援 Android Chrome）
-        if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
-          navigator.serviceWorker.controller.postMessage({
-            type: 'SHOW_NOTIFICATION',
-            title: notificationTitle,
-            options: {
-              body: notificationBody,
-              icon: '/tea-timer/icons/icon-192.png',
-              vibrate: [200, 100, 200],
-              tag: 'tea-timer',
-              renotify: true,  // 即使替換也重新播放聲音/震動
-              requireInteraction: true
-            }
-          })
-        } else {
-          // Fallback for desktop browsers
-          const notification = new Notification(notificationTitle, {
-            body: notificationBody,
-            icon: '/tea-timer/icons/icon-192.png',
-            vibrate: [200, 100, 200],
-            tag: 'tea-timer',
-            renotify: true,  // 即使替換也重新播放聲音/震動
-            requireInteraction: true
-          })
-          
-          notification.onclick = () => {
-            window.focus()
-            notification.close()
-          }
-        }
-      }
-      
-      // 連續模式下增加泡數 (Task 5.3-5.4)
-      if (enableMultiSteep.value && incrementTotalSeconds.value > 0) {
-        currentSteep.value++
-        // 不重置，等待使用者操作 (Task 5.4)
-      }
-    }
-  }, 1000)
+  // 使用 timer composable 的 startCountdown，傳入完成回調
+  timer.startCountdown(
+    currentSteepSeconds.value,
+    currentSteep.value,
+    enableMultiSteep.value,
+    handleCountdownComplete
+  )
+}
+
+// 倒數完成處理
+function handleCountdownComplete() {
+  multiSteep.markCompleted()
+  
+  // 發送通知
+  notification.sendTimerCompleteNotification(
+    currentSteep.value,
+    enableMultiSteep.value
+  )
+  
+  // 連續模式下增加泡數
+  multiSteep.incrementSteep()
 }
 
 // 暫停/繼續功能
-function togglePause() {
-  if (!isRunning.value) return
-  
-  if (!isPaused.value) {
-    // 暫停：清除 interval，保留 remainingSeconds
-    clearInterval(intervalId)
-    isPaused.value = true
-    
-    // 更新標題為暫停狀態
-    const timeStr = displayTime.value
-    if (enableMultiSteep.value) {
-      document.title = `⏸ ${timeStr} - 第 ${currentSteep.value} 泡 - 泡茶計時器`
-    } else {
-      document.title = `⏸ ${timeStr} - 泡茶計時器`
-    }
-  } else {
-    // 繼續：重新建立 interval
-    isPaused.value = false
-    
-    intervalId = setInterval(() => {
-      remainingSeconds.value--
-      
-      // 更新分頁標題 (Task 9.1-9.4)
-      if (remainingSeconds.value > 0) {
-        const mins = Math.floor(remainingSeconds.value / 60)
-        const secs = remainingSeconds.value % 60
-        const timeStr = `${mins}:${secs.toString().padStart(2, '0')}`
-        
-        // Task 9.3: 連續模式顯示泡數
-        if (enableMultiSteep.value) {
-          document.title = `${timeStr} - 第 ${currentSteep.value} 泡 - 泡茶計時器`
-        } else {
-          document.title = `${timeStr} - 泡茶計時器`
-        }
-      } else {
-        document.title = `0:00 - 泡茶計時器`
-      }
-      
-      if (remainingSeconds.value <= 0) {
-        clearInterval(intervalId)
-        isRunning.value = false
-        isPaused.value = false
-        isTimeUp.value = true
-        isCompleted.value = true  // Task 5.2
-        
-        // 發送通知 (Task 5.1-6.3)
-        if ('Notification' in window && Notification.permission === 'granted') {
-          const notificationTitle = '泡茶時間到！'
-          const notificationBody = enableMultiSteep.value 
-            ? `第 ${currentSteep.value} 泡已完成`
-            : '時間到了！'
-          
-          // 使用 Service Worker 發送通知（支援 Android Chrome）
-          if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
-            navigator.serviceWorker.controller.postMessage({
-              type: 'SHOW_NOTIFICATION',
-              title: notificationTitle,
-              options: {
-                body: notificationBody,
-                icon: '/tea-timer/icons/icon-192.png',
-                vibrate: [200, 100, 200],
-                tag: 'tea-timer',
-                renotify: true,  // 即使替換也重新播放聲音/震動
-                requireInteraction: true
-              }
-            })
-          } else {
-            // Fallback for desktop browsers
-            const notification = new Notification(notificationTitle, {
-              body: notificationBody,
-              icon: '/tea-timer/icons/icon-192.png',
-              vibrate: [200, 100, 200],
-              tag: 'tea-timer',
-              renotify: true,  // 即使替換也重新播放聲音/震動
-              requireInteraction: true
-            })
-            
-            notification.onclick = () => {
-              window.focus()
-              notification.close()
-            }
-          }
-        }
-        
-        // 連續模式下增加泡數 (Task 5.3-5.4)
-        if (enableMultiSteep.value && incrementTotalSeconds.value > 0) {
-          currentSteep.value++
-          // 不重置，等待使用者操作 (Task 5.4)
-        }
-      }
-    }, 1000)
-  }
+function handleTogglePause() {
+  timer.togglePause(
+    currentSteep.value,
+    enableMultiSteep.value,
+    handleCountdownComplete
+  )
 }
 
-// 重置功能 (Task 7.1-7.3)
+// 重置功能
 function resetCountdown() {
-  if (intervalId) {
-    clearInterval(intervalId)
-    intervalId = null
-  }
-  isRunning.value = false
-  isPaused.value = false  // 清除暫停狀態
-  isTimeUp.value = false
-  isCompleted.value = false  // Task 7.2
-  currentSteep.value = 1  // Task 7.1
-  remainingSeconds.value = totalSeconds.value  // Task 7.3: 恢復為第一泡時間
-  
-  // 恢復標題 (Task 10.3)
-  document.title = '泡茶計時器'
+  timer.resetCountdown()
+  multiSteep.endBrewing()
 }
 
-// 展開/收起增量設定 (Task 1.3, 8.1-8.4)
+// 展開/收起增量設定
 function toggleIncrementSettings() {
-  showIncrementSettings.value = !showIncrementSettings.value
-  
-  try {
-    localStorage.setItem('teaTimerShowIncrementSettings', 
-                         showIncrementSettings.value.toString())
-  } catch (error) {
-    console.error('localStorage save error:', error)
-  }
+  multiSteep.toggleIncrementSettings(storage)
 }
 
-// 結束沖泡功能 (Task 4.8)
+// 結束沖泡功能
 function endBrewing() {
-  if (intervalId) {
-    clearInterval(intervalId)
-    intervalId = null
-  }
-  isRunning.value = false
-  isTimeUp.value = false
-  isCompleted.value = false
-  currentSteep.value = 1
-  remainingSeconds.value = totalSeconds.value
-  document.title = '泡茶計時器'
+  timer.resetCountdown()
+  multiSteep.endBrewing()
 }
 </script>
 
@@ -482,7 +256,7 @@ function endBrewing() {
           </div>
           
           <!-- 增量輸入欄位 (Task 2.2-2.5, 5.1-5.3) -->
-          <div v-if="enableMultiSteep && showIncrementSettings" class="mt-4 pt-4 border-t border-green-200">
+          <div v-if="multiSteep.enableMultiSteep && showIncrementSettings" class="mt-4 pt-4 border-t border-green-200">
             <label class="block text-xs font-semibold text-gray-600 mb-3 uppercase tracking-wider">
               每泡增加時間
             </label>
@@ -494,7 +268,7 @@ function endBrewing() {
                   min="0" 
                   max="10"
                   class="w-full px-4 py-3 text-xl text-center font-bold border-2 border-green-200 rounded-xl 
-                         focus:outline-none focus:ring-3 focus:ring-green-300 focus:border-green-400 
+                         focus:outline-none focus:ring-3 focus:ring-green-300 focus:border-green-400
                          transition-all duration-200 bg-white
                          disabled:bg-gray-100 disabled:text-gray-400"
                   :disabled="isRunning"
@@ -518,11 +292,6 @@ function endBrewing() {
               </div>
             </div>
           </div>
-        </div>
-        
-        <!-- 上次使用提示 -->
-        <div v-if="!isRunning && !isTimeUp" class="text-xs text-center text-gray-400">
-          💾 上次使用：{{ minutes }} 分 {{ seconds }} 秒
         </div>
       </div>
       
@@ -563,8 +332,8 @@ function endBrewing() {
       <!-- 按鈕區 -->
       <div class="flex gap-4">
         <button
-          @click="isRunning ? togglePause() : startCountdown()"
-          :disabled="!isValid && !isRunning"
+          @click="isRunning ? handleTogglePause() : startCountdown()"
+          :disabled="!timer.isValid && !isRunning"
           class="flex-1 px-6 py-4 text-lg font-bold rounded-2xl transition-all duration-200
                  bg-linear-to-r from-green-500 to-teal-500 text-white shadow-lg
                  hover:from-green-600 hover:to-teal-600 hover:shadow-xl hover:scale-105
@@ -607,3 +376,5 @@ function endBrewing() {
     </div>
   </div>
 </template>
+
+
