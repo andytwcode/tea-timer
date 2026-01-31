@@ -5,6 +5,7 @@ import { useLocalStorage } from './composables/useLocalStorage'
 import { useNotification } from './composables/useNotification'
 import { useTimer } from './composables/useTimer'
 import { useMultiSteep } from './composables/useMultiSteep'
+import { useValidation } from './composables/useValidation'
 
 // Composables
 const pwa = usePWA()
@@ -12,6 +13,7 @@ const storage = useLocalStorage()
 const notification = useNotification()
 const timer = useTimer()
 const multiSteep = useMultiSteep()
+const { validationResult } = useValidation(timer, multiSteep)
 
 // 解構暴露給 template（Vue 會自動 unwrap top-level refs）
 const {
@@ -190,9 +192,9 @@ function endBrewing() {
       </div>
       
       <!-- 錯誤訊息 -->
-      <div v-if="!isValid && (minutes > 0 || seconds > 0)" 
+      <div v-if="validationResult.primaryError" 
            class="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-xl text-sm text-center animate-pulse">
-        ⚠️ 時間必須在 5 秒到 10 分鐘之間
+        ⚠️ {{ validationResult.primaryError }}
       </div>
       
       <!-- 輸入區 -->
@@ -205,10 +207,13 @@ function endBrewing() {
               type="number" 
               min="0" 
               max="10"
-              class="w-full px-5 py-4 text-2xl text-center font-bold border-2 border-gray-200 rounded-2xl 
-                     focus:outline-none focus:ring-4 focus:ring-green-200 focus:border-green-400 
-                     transition-all duration-200 bg-gray-50
-                     disabled:bg-gray-100 disabled:text-gray-400"
+              step="1"
+              :class="[
+                'w-full px-5 py-4 text-2xl text-center font-bold rounded-2xl transition-all duration-200 bg-gray-50 disabled:bg-gray-100 disabled:text-gray-400 focus:outline-none focus:ring-4',
+                validationResult.hasFieldError('minutes')
+                  ? 'border-2 border-red-400 focus:ring-red-200 focus:border-red-500'
+                  : 'border-2 border-gray-200 focus:ring-green-200 focus:border-green-400'
+              ]"
               :disabled="isRunning"
             />
           </div>
@@ -220,10 +225,13 @@ function endBrewing() {
               type="number" 
               min="0" 
               max="59"
-              class="w-full px-5 py-4 text-2xl text-center font-bold border-2 border-gray-200 rounded-2xl 
-                     focus:outline-none focus:ring-4 focus:ring-green-200 focus:border-green-400 
-                     transition-all duration-200 bg-gray-50
-                     disabled:bg-gray-100 disabled:text-gray-400"
+              step="1"
+              :class="[
+                'w-full px-5 py-4 text-2xl text-center font-bold rounded-2xl transition-all duration-200 bg-gray-50 disabled:bg-gray-100 disabled:text-gray-400 focus:outline-none focus:ring-4',
+                validationResult.hasFieldError('seconds')
+                  ? 'border-2 border-red-400 focus:ring-red-200 focus:border-red-500'
+                  : 'border-2 border-gray-200 focus:ring-green-200 focus:border-green-400'
+              ]"
               :disabled="isRunning"
             />
           </div>
@@ -257,6 +265,12 @@ function endBrewing() {
           
           <!-- 增量輸入欄位 (Task 2.2-2.5, 5.1-5.3) -->
           <div v-if="multiSteep.enableMultiSteep && showIncrementSettings" class="mt-4 pt-4 border-t border-green-200">
+            <!-- 增量錯誤訊息 -->
+            <div v-if="validationResult.incrementError" 
+                 class="mb-3 bg-orange-50 border border-orange-200 text-orange-600 px-3 py-2 rounded-lg text-xs text-center">
+              ⚠️ {{ validationResult.incrementError }}
+            </div>
+            
             <label class="block text-xs font-semibold text-gray-600 mb-3 uppercase tracking-wider">
               每泡增加時間
             </label>
@@ -267,10 +281,13 @@ function endBrewing() {
                   type="number" 
                   min="0" 
                   max="10"
-                  class="w-full px-4 py-3 text-xl text-center font-bold border-2 border-green-200 rounded-xl 
-                         focus:outline-none focus:ring-3 focus:ring-green-300 focus:border-green-400
-                         transition-all duration-200 bg-white
-                         disabled:bg-gray-100 disabled:text-gray-400"
+                  step="1"
+                  :class="[
+                    'w-full px-4 py-3 text-xl text-center font-bold rounded-xl transition-all duration-200 bg-white disabled:bg-gray-100 disabled:text-gray-400 focus:outline-none focus:ring-3',
+                    validationResult.hasFieldError('incrementMinutes')
+                      ? 'border-2 border-red-400 focus:ring-red-200 focus:border-red-500'
+                      : 'border-2 border-green-200 focus:ring-green-300 focus:border-green-400'
+                  ]"
                   :disabled="isRunning"
                 />
                 <span class="text-xs text-gray-500 text-center mt-1">分</span>
@@ -282,10 +299,13 @@ function endBrewing() {
                   type="number" 
                   min="0" 
                   max="59"
-                  class="w-full px-4 py-3 text-xl text-center font-bold border-2 border-green-200 rounded-xl 
-                         focus:outline-none focus:ring-3 focus:ring-green-300 focus:border-green-400 
-                         transition-all duration-200 bg-white
-                         disabled:bg-gray-100 disabled:text-gray-400"
+                  step="1"
+                  :class="[
+                    'w-full px-4 py-3 text-xl text-center font-bold rounded-xl transition-all duration-200 bg-white disabled:bg-gray-100 disabled:text-gray-400 focus:outline-none focus:ring-3',
+                    validationResult.hasFieldError('incrementSeconds')
+                      ? 'border-2 border-red-400 focus:ring-red-200 focus:border-red-500'
+                      : 'border-2 border-green-200 focus:ring-green-300 focus:border-green-400'
+                  ]"
                   :disabled="isRunning"
                 />
                 <span class="text-xs text-gray-500 text-center mt-1">秒</span>
@@ -333,7 +353,7 @@ function endBrewing() {
       <div class="flex gap-4">
         <button
           @click="isRunning ? handleTogglePause() : startCountdown()"
-          :disabled="!timer.isValid && !isRunning"
+          :disabled="!validationResult.isValid && !isRunning"
           class="flex-1 px-6 py-4 text-lg font-bold rounded-2xl transition-all duration-200
                  bg-linear-to-r from-green-500 to-teal-500 text-white shadow-lg
                  hover:from-green-600 hover:to-teal-600 hover:shadow-xl hover:scale-105
