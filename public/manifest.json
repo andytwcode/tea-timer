@@ -1,6 +1,6 @@
 {
   "name": "泡茶計時器",
-  "short_name": "泡茶",
+  "short_name": "泡茶計時器",
   "description": "優雅的連續沖泡計時工具",
   "start_url": "/tea-timer/",
   "display": "standalone",

@@ -2,7 +2,7 @@
 import { ref, computed, onMounted, watch } from 'vue'
 
 // 狀態管理 (Task 3.1-3.6)
-const minutes = ref(3)
+const minutes = ref(1)
 const seconds = ref(0)
 const remainingSeconds = ref(0)
 const isRunning = ref(false)
@@ -11,7 +11,7 @@ const isTimeUp = ref(false)
 
 // 連續沖泡模式狀態 (Task 1.1-1.5)
 const incrementMinutes = ref(0)
-const incrementSeconds = ref(10)
+const incrementSeconds = ref(30)
 const enableMultiSteep = ref(false)
 const currentSteep = ref(1)
 const isCompleted = ref(false)
