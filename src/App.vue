@@ -87,6 +87,13 @@ const incrementLabel = computed(() => {
 onMounted(() => {
   document.title = '泡茶計時器'
   
+  // 註冊 Service Worker（Android Chrome 需要才能安裝 PWA）
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('/tea-timer/sw.js').catch(() => {
+      // 靜默失敗，不影響應用功能
+    })
+  }
+  
   // 請求通知權限 (Task 4.1-4.5)
   if ('Notification' in window && Notification.permission === 'default') {
     Notification.requestPermission()
@@ -198,17 +205,33 @@ function startCountdown() {
           ? `第 ${currentSteep.value} 泡已完成`
           : '時間到了！'
         
-        const notification = new Notification(notificationTitle, {
-          body: notificationBody,
-          icon: '/icons/icon-192.png',
-          vibrate: [200, 100, 200],
-          tag: 'tea-timer',
-          requireInteraction: true
-        })
-        
-        notification.onclick = () => {
-          window.focus()
-          notification.close()
+        // 使用 Service Worker 發送通知（支援 Android Chrome）
+        if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+          navigator.serviceWorker.controller.postMessage({
+            type: 'SHOW_NOTIFICATION',
+            title: notificationTitle,
+            options: {
+              body: notificationBody,
+              icon: '/tea-timer/icons/icon-192.png',
+              vibrate: [200, 100, 200],
+              tag: 'tea-timer',
+              requireInteraction: true
+            }
+          })
+        } else {
+          // Fallback for desktop browsers
+          const notification = new Notification(notificationTitle, {
+            body: notificationBody,
+            icon: '/tea-timer/icons/icon-192.png',
+            vibrate: [200, 100, 200],
+            tag: 'tea-timer',
+            requireInteraction: true
+          })
+          
+          notification.onclick = () => {
+            window.focus()
+            notification.close()
+          }
         }
       }
       
