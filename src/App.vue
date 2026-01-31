@@ -215,6 +215,7 @@ function startCountdown() {
               icon: '/tea-timer/icons/icon-192.png',
               vibrate: [200, 100, 200],
               tag: 'tea-timer',
+              renotify: true,  // 即使替換也重新播放聲音/震動
               requireInteraction: true
             }
           })
@@ -225,6 +226,7 @@ function startCountdown() {
             icon: '/tea-timer/icons/icon-192.png',
             vibrate: [200, 100, 200],
             tag: 'tea-timer',
+            renotify: true,  // 即使替換也重新播放聲音/震動
             requireInteraction: true
           })
           
